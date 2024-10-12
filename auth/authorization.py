@@ -11,3 +11,8 @@ class Authorization:
         self.auth_url = "https://accounts.spotify.com/authorize"
         self.token_url = "https://accounts.spotify.com/api/token"
         self.api_base_url = "https://api.spotify.com/v1/"
+
+    def setup_routes(self):
+        @self.app.route('/')
+        def index():
+            return "Welcome to spotiplay! <a href='/login'>Login with Spotify</a>"
