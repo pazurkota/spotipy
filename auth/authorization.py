@@ -1,5 +1,10 @@
 import urllib.parse
-from flask import Flask, redirect
+from datetime import datetime
+
+import requests
+from flask import Flask, redirect, request, jsonify, session
+from urllib3 import request
+
 from handler.auth_json import AuthJson as auth
 
 class Authorization:
@@ -32,3 +37,24 @@ class Authorization:
             auth_url = f"{self.auth_url}?{urllib.parse.urlencode(params)}"
 
             return redirect(auth_url)
+
+        @self.app.route('/callback')
+        def callback():
+            if 'error' in request.args:
+                return jsonify({"error": request.args['error']})
+
+            if 'code' in request.args:
+                request_body = {
+                    'code': request.args['code'],
+                    'grant_type': 'authorization_code',
+                    'redirect_uri': self.redirect_uri,
+                    'client_id': self.client_id,
+                    'client_secret': self.client_secret
+                }
+
+                response = requests.post(self.token_url, data=request_body)
+                token_info = response.json()
+
+                session['access_token'] = token_info['access_token']
+                session['refresh_token'] = token_info['refresh_token']
+                session['expires_in'] = datetime.now().timestamp() + token_info['expires_in']
