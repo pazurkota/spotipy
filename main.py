@@ -1,3 +1,10 @@
-from handler.auth_json import AuthJson as auth
+from flask import Flask
+from auth.authorization import Authorization
 
-print(auth.get_client_id())
+app = Flask(__name__)
+app.secret_key = 'spotiplay_key'
+
+auth = Authorization(app)
+
+if __name__ == '__main__':
+    app.run(debug=True, port=8080)

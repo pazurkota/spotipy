@@ -3,7 +3,6 @@ from datetime import datetime
 
 import requests
 from flask import Flask, redirect, request, jsonify, session
-from urllib3 import request
 
 from handler.auth_json import AuthJson as auth
 
@@ -25,7 +24,7 @@ class Authorization:
 
         @self.app.route('/login')
         def login():
-            scope = 'user-read-playback-state user-modify-playback-state user-read-currently-playing'
+            scope = 'user-read-playback-state user-modify-playback-state user-read-currently-playing user-read-private user-read-email'
 
             params = {
                 'client_id': self.client_id,
@@ -59,6 +58,8 @@ class Authorization:
                 session['refresh_token'] = token_info['refresh_token']
                 session['expires_in'] = datetime.now().timestamp() + token_info['expires_in']
 
+                return redirect('/playlists')
+
         @self.app.route('/refresh_token')
         def refresh_token():
             if 'refresh_token' not in session:
@@ -77,3 +78,21 @@ class Authorization:
 
                 session['access_token'] = new_token_info['access_token']
                 session['expires_in'] = datetime.now().timestamp() + new_token_info['expires_in']
+
+        # test route for testing API
+        @self.app.route('/playlists')
+        def get_playlists():
+            if 'access_token' not in session:
+                return redirect('login')
+
+            if datetime.now().timestamp() > session['expires_in']:
+                return redirect('/refresh_token')
+
+            headers = {
+                'Authorization': f"Bearer {session['access_token']}"
+            }
+
+            response = requests.get(self.api_base_url + 'me/playlists', headers=headers)
+            playlists = response.json()
+
+            return jsonify(playlists)
