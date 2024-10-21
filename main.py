@@ -1,5 +1,5 @@
 from flask import Flask
-from auth.authorization import Authorization
+from api.authorization import Authorization
 
 app = Flask(__name__)
 app.secret_key = 'spotiplay_key'
