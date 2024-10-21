@@ -58,3 +58,22 @@ class Authorization:
                 session['access_token'] = token_info['access_token']
                 session['refresh_token'] = token_info['refresh_token']
                 session['expires_in'] = datetime.now().timestamp() + token_info['expires_in']
+
+        @self.app.route('/refresh_token')
+        def refresh_token():
+            if 'refresh_token' not in session:
+                return redirect('/login')
+
+            if datetime.now().timestamp() > session['expires_at']:
+                request_body = {
+                    'grant_type': 'refresh_token',
+                    'refresh_token': session['refresh_token'],
+                    'client_id': self.client_id,
+                    'client_secret': self.client_secret
+                }
+
+                response = requests.post(self.token_url, data=request_body)
+                new_token_info = response.json()
+
+                session['access_token'] = new_token_info['access_token']
+                session['expires_in'] = datetime.now().timestamp() + new_token_info['expires_in']
