@@ -1,9 +1,7 @@
 import urllib.parse
-from datetime import datetime
-
 import requests
+from datetime import datetime
 from flask import Flask, redirect, request, jsonify, session
-
 from handler.auth_json import AuthJson as auth
 
 class Authorization:
@@ -78,21 +76,3 @@ class Authorization:
 
                 session['access_token'] = new_token_info['access_token']
                 session['expires_in'] = datetime.now().timestamp() + new_token_info['expires_in']
-
-        # test route for testing API
-        @self.app.route('/playlists')
-        def get_playlists():
-            if 'access_token' not in session:
-                return redirect('login')
-
-            if datetime.now().timestamp() > session['expires_in']:
-                return redirect('/refresh_token')
-
-            headers = {
-                'Authorization': f"Bearer {session['access_token']}"
-            }
-
-            response = requests.get(self.api_base_url + 'me/playlists', headers=headers)
-            playlists = response.json()
-
-            return jsonify(playlists)
