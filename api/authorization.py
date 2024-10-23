@@ -56,7 +56,7 @@ class Authorization:
                 session['refresh_token'] = token_info['refresh_token']
                 session['expires_in'] = datetime.now().timestamp() + token_info['expires_in']
 
-                return redirect('/playlists')
+                return redirect('/logged')
 
         @self.app.route('/refresh_token')
         def refresh_token():
@@ -76,3 +76,7 @@ class Authorization:
 
                 session['access_token'] = new_token_info['access_token']
                 session['expires_in'] = datetime.now().timestamp() + new_token_info['expires_in']
+
+        @self.app.route('/logged')
+        def show_logged_message():
+            return "You have successfully logged with Spotify! You may now close this window"
