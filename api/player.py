@@ -26,3 +26,35 @@ class SpotifyPlayer:
             playlists = response.json()
 
             return jsonify(playlists)
+
+        @self.app.route('/play')
+        def play_playback():
+            if 'access_token' not in session:
+                return redirect('/login')
+
+            if datetime.now().timestamp() > session['expires_in']:
+                return redirect('/refresh_token')
+
+            headers = {
+                'Authorization': f"Bearer {session['access_token']}"
+            }
+
+            requests.put(self.auth.api_base_url + 'me/player/play', headers=headers)
+
+            return 'Successfully played music!'
+
+        @self.app.route('/stop')
+        def stop_playback():
+            if 'access_token' not in session:
+                return redirect('/login')
+
+            if datetime.now().timestamp() > session['expires_in']:
+                return redirect('/refresh_token')
+
+            headers = {
+                'Authorization': f"Bearer {session['access_token']}"
+            }
+
+            requests.put(self.auth.api_base_url + 'me/player/pause', headers=headers)
+
+            return 'Successfully stopped music!'
