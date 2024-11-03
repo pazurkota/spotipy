@@ -30,3 +30,14 @@ class SpotifyPlayer:
         def stop_playback():
             requests.put(self.auth.api_base_url + 'me/player/pause', headers=_get_header())
             return 'Successfully stopped music!'
+
+        @self.app.route('/next')
+        def skip_to_next():
+            requests.post(self.auth.api_base_url + 'me/player/next', headers=_get_header())
+            return 'Successfully skipped track!'
+
+        @self.app.route('/previous')
+        def skip_to_previous():
+            requests.post(self.auth.api_base_url + 'me/player/previous', headers=_get_header())
+            return 'Successfully returned to previous track!'
+
