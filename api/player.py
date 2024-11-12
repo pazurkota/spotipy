@@ -1,6 +1,6 @@
 import requests
 from datetime import datetime
-from flask import Flask, redirect, jsonify, session
+from flask import Flask, redirect, jsonify, session, request
 from api.authorization import Authorization
 
 class SpotifyPlayer:
@@ -40,4 +40,10 @@ class SpotifyPlayer:
         def skip_to_previous():
             requests.post(self.auth.api_base_url + 'me/player/previous', headers=_get_header())
             return 'Successfully returned to previous track!'
+
+        @self.app.route('/to_position')
+        def seek_to_position():
+            seconds = request.args.get('sec', default=1, type=int)
+            requests.put(self.auth.api_base_url + f'me/player/seek?position_ms={seconds * 1000}', headers=_get_header())
+            return f'Successfully moved track to {seconds} seconds position!'
 
