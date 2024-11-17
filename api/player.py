@@ -1,6 +1,6 @@
 import requests
 from datetime import datetime
-from flask import Flask, redirect, jsonify, session, request
+from flask import Flask, redirect, session, request
 from api.authorization import Authorization
 
 class SpotifyPlayer:
@@ -47,3 +47,27 @@ class SpotifyPlayer:
             requests.put(self.auth.api_base_url + f'me/player/seek?position_ms={seconds * 1000}', headers=_get_header())
             return f'Successfully moved track to {seconds} seconds position!'
 
+        @self.app.route('/volume')
+        def set_volume():
+            volume_percent = request.args.get('percent', default=50, type=int)
+            requests.put(self.auth.api_base_url + f'me/player/volume?volume_percent={volume_percent}', headers=_get_header())
+            return f'Successfully changed volume to {volume_percent}%!'
+
+        @self.app.route('/repeat_mode')
+        def set_repeat_mode():
+            repeat_mode = request.args.get('mode', default='context', type=str)
+
+            # check if user entered the right mode, if not: set the repeat mode to 'context'
+            if repeat_mode == 'off' or repeat_mode == 'context' or repeat_mode == 'track':
+                pass
+            else:
+                repeat_mode = 'context'
+
+            requests.put(self.auth.api_base_url + f'me/player/repeat?state={repeat_mode}', headers=_get_header())
+            return f'Successfully set the repeat mode to {repeat_mode}!'
+
+        @self.app.route('/shuffle')
+        def set_shuffle_mode():
+            shuffle = request.args.get('enable', default=False, type=bool)
+            requests.put(self.auth.api_base_url + f'me/player/shuffle?state={shuffle}', headers=_get_header())
+            return f'Successfully set the shuffle to {shuffle}!'
