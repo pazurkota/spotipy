@@ -1,82 +1,83 @@
 import urllib.parse
 import requests
+import webbrowser
 from datetime import datetime
-from flask import Flask, redirect, request, jsonify, session
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from handler.auth_json import AuthJson as auth
 
 class Authorization:
-    def __init__(self, app: Flask):
-        self.app = app
+    def __init__(self):
         self.client_id = auth.get_client_id()
         self.client_secret = auth.get_client_secret()
         self.redirect_uri = "http://localhost:8080/callback"
         self.auth_url = "https://accounts.spotify.com/authorize"
         self.token_url = "https://accounts.spotify.com/api/token"
         self.api_base_url = "https://api.spotify.com/v1/"
-        self.setup_routes()
+        self.access_token = None
+        self.refresh_token = None
+        self.expires_in = None
 
-    def setup_routes(self):
-        @self.app.route('/')
-        def index():
-            return "Welcome to spotiplay! <a href='/login'>Login with Spotify</a>"
+    def authenticate(self):
+        scope = 'user-read-playback-state user-modify-playback-state user-read-currently-playing user-read-private user-read-email'
+        params = {
+            'client_id': self.client_id,
+            'response_type': 'code',
+            'scope': scope,
+            'redirect_uri': self.redirect_uri,
+        }
+        auth_url = f"{self.auth_url}?{urllib.parse.urlencode(params)}"
+        webbrowser.open(auth_url)
+        self._start_http_server()
 
-        @self.app.route('/login')
-        def login():
-            scope = 'user-read-playback-state user-modify-playback-state user-read-currently-playing user-read-private user-read-email'
+    def _start_http_server(self):
+        class AuthHandler(BaseHTTPRequestHandler):
+            def do_GET(self):
+                if '/callback' in self.path:
+                    query = urllib.parse.urlparse(self.path).query
+                    code = urllib.parse.parse_qs(query).get('code')
+                    if code:
+                        self.server.auth_code = code[0]
+                        self.send_response(200)
+                        self.end_headers()
+                        self.wfile.write(b'Authentication successful! You can close this window.')
+                    else:
+                        self.send_response(400)
+                        self.end_headers()
+                        self.wfile.write(b'Authentication failed!')
 
-            params = {
-                'client_id': self.client_id,
-                'response_type': 'code',
-                'scope': scope,
-                'redirect_uri': self.redirect_uri,
-            }
+        server = HTTPServer(('localhost', 8080), AuthHandler)
+        server.handle_request()
+        self._exchange_code_for_token(server.auth_code)
 
-            auth_url = f"{self.auth_url}?{urllib.parse.urlencode(params)}"
+    def _exchange_code_for_token(self, code):
+        request_body = {
+            'code': code,
+            'grant_type': 'authorization_code',
+            'redirect_uri': self.redirect_uri,
+            'client_id': self.client_id,
+            'client_secret': self.client_secret
+        }
+        response = requests.post(self.token_url, data=request_body)
+        token_info = response.json()
+        self.access_token = token_info['access_token']
+        self.refresh_token = token_info['refresh_token']
+        self.expires_in = datetime.now().timestamp() + token_info['expires_in']
 
-            return redirect(auth_url)
+    def get_header(self):
+        if datetime.now().timestamp() > self.expires_in:
+            self._refresh_token()
+        return {
+            'Authorization': f"Bearer {self.access_token}"
+        }
 
-        @self.app.route('/callback')
-        def callback():
-            if 'error' in request.args:
-                return jsonify({"error": request.args['error']})
-
-            if 'code' in request.args:
-                request_body = {
-                    'code': request.args['code'],
-                    'grant_type': 'authorization_code',
-                    'redirect_uri': self.redirect_uri,
-                    'client_id': self.client_id,
-                    'client_secret': self.client_secret
-                }
-
-                response = requests.post(self.token_url, data=request_body)
-                token_info = response.json()
-
-                session['access_token'] = token_info['access_token']
-                session['refresh_token'] = token_info['refresh_token']
-                session['expires_in'] = datetime.now().timestamp() + token_info['expires_in']
-
-                return redirect('/logged')
-
-        @self.app.route('/refresh_token')
-        def refresh_token():
-            if 'refresh_token' not in session:
-                return redirect('/login')
-
-            if datetime.now().timestamp() > session['expires_at']:
-                request_body = {
-                    'grant_type': 'refresh_token',
-                    'refresh_token': session['refresh_token'],
-                    'client_id': self.client_id,
-                    'client_secret': self.client_secret
-                }
-
-                response = requests.post(self.token_url, data=request_body)
-                new_token_info = response.json()
-
-                session['access_token'] = new_token_info['access_token']
-                session['expires_in'] = datetime.now().timestamp() + new_token_info['expires_in']
-
-        @self.app.route('/logged')
-        def show_logged_message():
-            return "You have successfully logged with Spotify! You may now close this window"
+    def _refresh_token(self):
+        request_body = {
+            'grant_type': 'refresh_token',
+            'refresh_token': self.refresh_token,
+            'client_id': self.client_id,
+            'client_secret': self.client_secret
+        }
+        response = requests.post(self.token_url, data=request_body)
+        new_token_info = response.json()
+        self.access_token = new_token_info['access_token']
+        self.expires_in = datetime.now().timestamp() + new_token_info['expires_in']
