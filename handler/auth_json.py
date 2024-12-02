@@ -19,16 +19,28 @@ class AuthJson:
 
     @staticmethod
     def save_auth_tokens(access_token: str, refresh_token: str, expires_in: int):
+        path = os.path.join(userpaths.get_my_documents(), "spotiplay_auth_tokens.json")
+
         tokens = {
             'access_token': access_token,
             'refresh_token': refresh_token,
             'expires_in': expires_in
         }
 
-        with open(os.path.join(userpaths.get_my_documents(), "spotiplay_auth_tokens.json"), "w") as f:
+        with open(path, "w") as f:
             json.dump(tokens, f)
 
     @staticmethod
     def read_auth_tokens():
-        with open(os.path.join(userpaths.get_my_documents(), "spotiplay_auth_tokens.json"), "r") as f:
-            return json.load(f)
+        path = os.path.join(userpaths.get_my_documents(), "spotiplay_auth_tokens.json")
+        if os.path.exists(path) and os.path.getsize(path) > 0:
+            with open(path, "r") as f:
+                data = json.load(f)
+                if data:
+                    return data
+        return {
+            'access_token': None,
+            'refresh_token': None,
+            'expires_in': None
+        }
+

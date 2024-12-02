@@ -16,18 +16,26 @@ class Authorization:
         self.access_token = None
         self.refresh_token = None
         self.expires_in = None
+        self.get_auth_tokens()
+
+    def get_auth_tokens(self):
+        tokens = auth.read_auth_tokens()
+        self.access_token = tokens['access_token']
+        self.refresh_token = tokens['refresh_token']
+        self.expires_in = tokens['expires_in']
 
     def authenticate(self):
-        scope = 'user-read-playback-state user-modify-playback-state user-read-currently-playing user-read-private user-read-email'
-        params = {
-            'client_id': self.client_id,
-            'response_type': 'code',
-            'scope': scope,
-            'redirect_uri': self.redirect_uri,
-        }
-        auth_url = f"{self.auth_url}?{urllib.parse.urlencode(params)}"
-        webbrowser.open(auth_url)
-        self._start_http_server()
+        if not self.access_token or datetime.now().timestamp() > self.expires_in:
+            scope = 'user-read-playback-state user-modify-playback-state user-read-currently-playing user-read-private user-read-email'
+            params = {
+                'client_id': self.client_id,
+                'response_type': 'code',
+                'scope': scope,
+                'redirect_uri': self.redirect_uri,
+            }
+            auth_url = f"{self.auth_url}?{urllib.parse.urlencode(params)}"
+            webbrowser.open(auth_url)
+            self._start_http_server()
 
     def _start_http_server(self):
         class AuthHandler(BaseHTTPRequestHandler):
@@ -62,6 +70,7 @@ class Authorization:
         self.access_token = token_info['access_token']
         self.refresh_token = token_info['refresh_token']
         self.expires_in = datetime.now().timestamp() + token_info['expires_in']
+        auth.save_auth_tokens(self.access_token, self.refresh_token, self.expires_in)
 
     def get_header(self):
         if datetime.now().timestamp() > self.expires_in:
@@ -81,3 +90,4 @@ class Authorization:
         new_token_info = response.json()
         self.access_token = new_token_info['access_token']
         self.expires_in = datetime.now().timestamp() + new_token_info['expires_in']
+        auth.save_auth_tokens(self.access_token, self.refresh_token, self.expires_in)
