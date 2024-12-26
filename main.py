@@ -1,10 +1,4 @@
-from flask import Flask
-from api.authorization import Authorization
+from commands.spotify_player import player_commands
 
-app = Flask(__name__)
-app.secret_key = 'spotiplay_key'
-
-auth = Authorization(app)
-
-if __name__ == '__main__':
-    app.run(debug=True, port=8080)
+if __name__ == "__main__":
+    player_commands()
