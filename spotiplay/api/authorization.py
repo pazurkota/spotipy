@@ -3,7 +3,7 @@ import requests
 import webbrowser
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from handler.auth_json import AuthJson as auth
+from spotiplay.handler.auth_json import AuthJson as auth
 
 class Authorization:
     def __init__(self):

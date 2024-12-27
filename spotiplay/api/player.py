@@ -1,5 +1,5 @@
 import requests
-from api.authorization import Authorization
+from spotiplay.api.authorization import Authorization
 
 class SpotifyPlayer:
     def __init__(self, auth: Authorization):

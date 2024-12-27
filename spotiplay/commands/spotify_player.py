@@ -1,6 +1,6 @@
 ﻿import typer
-from api.authorization import Authorization
-from api.player import SpotifyPlayer
+from spotiplay.api.authorization import Authorization
+from spotiplay.api.player import SpotifyPlayer
 
 player_commands = typer.Typer()
 
